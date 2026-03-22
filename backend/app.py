@@ -34,7 +34,7 @@ if ENV_STORAGE_KEY in os.environ:
     blob_list = list(container_client.list_blobs())
 
     # Download all blobs to a clean local folder
-    local_model_dir = Path("./model")
+    local_model_dir = Path(__file__).resolve().parent / "model"
     if local_model_dir.exists():
         shutil.rmtree(local_model_dir)
     local_model_dir.mkdir(parents=True, exist_ok=True)
