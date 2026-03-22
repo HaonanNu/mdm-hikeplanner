@@ -1,0 +1,9 @@
+services:
+  hikeplanner:
+    build: .
+    ports:
+      - "9001:80"
+    env_file:
+      - .env
+    environment:
+      - FLASK_ENV=development

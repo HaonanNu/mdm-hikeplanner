@@ -1,0 +1,7 @@
+.git
+.venv
+.env
+__pycache__
+frontend/node_modules
+*.pdf
+*.csv
