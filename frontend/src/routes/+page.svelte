@@ -185,6 +185,11 @@
                             </tbody>
                         </table>
                     </div>
+                    <div class="mt-4 pt-3 border-top">
+                        <a href="{url}/api/download-model" class="btn btn-outline-secondary w-100" download>
+                            <i class="bi bi-download me-2"></i>Download Model (.pkl)
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>

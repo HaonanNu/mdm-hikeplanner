@@ -96,3 +96,8 @@ def hello_world():
         'din33466': timedelta_minutes(din33466(uphill=uphill, downhill=downhill, distance=length)),
         'sac': timedelta_minutes(sac(uphill=uphill, downhill=downhill, distance=length))
         })
+
+@app.route("/api/download-model")
+def download_model():
+    model_path = Path(__file__).resolve().parent / "model" / "GradientBoostingRegressor.pkl"
+    return send_file(model_path, as_attachment=True)
