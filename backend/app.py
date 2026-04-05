@@ -22,6 +22,7 @@ if ENV_STORAGE_KEY in os.environ:
     blob_service_client = BlobServiceClient.from_connection_string(azureStorageConnectionString)
 
     containers = blob_service_client.list_containers(include_metadata=True)
+    
     suffix = max(
         int(container.name.split("-")[-1])
         for container in containers
@@ -48,11 +49,11 @@ else:
     print("CANNOT ACCESS AZURE BLOB STORAGE - Please set AZURE_STORAGE_CONNECTION_STRING. Current env: ")
     print(os.environ)
 
-gbr_model_path = Path(".", "model", "GradientBoostingRegressor.pkl")
+gbr_model_path = Path(__file__).resolve().parent / "model" / "GradientBoostingRegressor.pkl"
 with open(gbr_model_path, 'rb') as fid:
     gradient_model = pickle.load(fid)
 
-linear_model_path = Path(".", "model", "LinearRegression.pkl")
+linear_model_path = Path(__file__).resolve().parent / "model" / "LinearRegression.pkl"
 with open(linear_model_path, 'rb') as fid:
     linear_model = pickle.load(fid)
 
@@ -79,6 +80,8 @@ app = Flask(__name__, static_url_path='/', static_folder='../frontend/build')
 def indexPage():
      return send_file("../frontend/build/index.html")  
 
+history = []
+
 @app.route("/api/predict")
 def hello_world():
     downhill = request.args.get('downhill', default = 0, type = int)
@@ -90,14 +93,53 @@ def hello_world():
     gradient_prediction = gradient_model.predict(demodf)[0]
     linear_prediction = linear_model.predict(demodf)[0]
 
-    return jsonify({
+    result = {
         'time': timedelta_minutes(gradient_prediction),
         'linear': timedelta_minutes(linear_prediction),
         'din33466': timedelta_minutes(din33466(uphill=uphill, downhill=downhill, distance=length)),
-        'sac': timedelta_minutes(sac(uphill=uphill, downhill=downhill, distance=length))
-        })
+        'sac': timedelta_minutes(sac(uphill=uphill, downhill=downhill, distance=length)),
+        'inputs': {
+            'downhill': downhill,
+            'uphill': uphill,
+            'length': length
+        },
+        'timestamp': datetime.datetime.now().strftime("%H:%M:%S")
+    }
+    
+    # Save to history (keep last 10)
+    history.insert(0, result)
+    if len(history) > 10:
+        history.pop()
 
-@app.route("/api/download-model")
-def download_model():
-    model_path = Path(__file__).resolve().parent / "model" / "GradientBoostingRegressor.pkl"
-    return send_file(model_path, as_attachment=True)
+    return jsonify(result)
+
+@app.route("/api/history")
+def get_history():
+    return jsonify(history)
+
+@app.route("/api/download-prediction")
+def download_prediction():
+    downhill = request.args.get('downhill', default = 0, type = int)
+    uphill = request.args.get('uphill', default = 0, type = int)
+    length = request.args.get('length', default = 0, type = int)
+
+    demoinput = [[downhill,uphill,length,0]]
+    demodf = pd.DataFrame(columns=['downhill', 'uphill', 'length_3d', 'max_elevation'], data=demoinput)
+    gradient_prediction = gradient_model.predict(demodf)[0]
+    linear_prediction = linear_model.predict(demodf)[0]
+
+    results = {
+        'Downhill (m)': [downhill],
+        'Uphill (m)': [uphill],
+        'Length (m)': [length],
+        'GBR Prediction': [timedelta_minutes(gradient_prediction)],
+        'Linear Prediction': [timedelta_minutes(linear_prediction)],
+        'DIN33466 Prediction': [timedelta_minutes(din33466(uphill=uphill, downhill=downhill, distance=length))],
+        'SAC Prediction': [timedelta_minutes(sac(uphill=uphill, downhill=downhill, distance=length))]
+    }
+    
+    df_results = pd.DataFrame(results)
+    csv_path = Path(__file__).resolve().parent / "model" / "prediction_results.csv"
+    df_results.to_csv(csv_path, index=False)
+
+    return send_file(csv_path, as_attachment=True, download_name="hike_prediction_results.csv")

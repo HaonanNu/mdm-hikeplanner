@@ -11,7 +11,7 @@ export default {
 		}),
 		prerender: {
 			handleHttpError: ({ path, referrer, message }) => {
-				if (path === '/api/download-model') {
+				if (path === '/api/download-csv' || path === '/api/download-prediction') {
 					return;
 				}
 				throw new Error(message);

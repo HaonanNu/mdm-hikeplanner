@@ -1,8 +1,8 @@
-﻿<script>
+<script>
     import { browser, dev } from "$app/environment";
     import { onMount } from "svelte";
 
-    let url = dev ? "http://localhost:5000" : "";
+    let url = dev ? "http://localhost:5002" : "";
     if (!dev && browser) {
         url = location.protocol + "//" + location.host;
     }
@@ -15,8 +15,14 @@
     let linearPrediction = "n.a.";
     let din33466 = "n.a.";
     let sac = "n.a.";
+    let history = [];
 
     let debounceId;
+
+    async function fetchHistory() {
+        let result = await fetch(url + "/api/history");
+        history = await result.json();
+    }
 
     async function predict() {
         let result = await fetch(
@@ -37,10 +43,12 @@
         linearPrediction = data.linear;
         din33466 = data.din33466;
         sac = data.sac;
+        fetchHistory();
     }
 
     onMount(() => {
         predict();
+        fetchHistory();
     });
 
     function schedulePredict() {
@@ -57,141 +65,160 @@
     <title>HikePlanner</title>
 </svelte:head>
 
-<div class="app-bg">
-    <main class="container py-5">
-        <div class="row g-4 align-items-start align-items-lg-stretch">
-            <div class="col-lg-6">
-                <div class="p-4 p-lg-5 bg-white shadow-sm rounded-4 h-100">
-                    <h1 class="display-6 fw-bold mb-2">HikePlanner</h1>
-                    <p class="text-muted mb-4">
-                        Schätze die Gehzeit basierend auf Distanz und Höhenmetern.
-                    </p>
+<div class="app-bg d-flex align-items-center justify-content-center py-5">
+    <main class="container">
+        <div class="row g-4 justify-content-center align-items-lg-stretch">
+            
+            <!-- Left Column: Input Form -->
+            <div class="col-lg-5 col-md-10">
+                <div class="p-4 p-lg-5 glass-card rounded-4 h-100 d-flex flex-column">
+                    <div class="text-center mb-4">
+                        <div class="d-inline-flex align-items-center justify-content-center bg-primary text-white rounded-circle mb-3 shadow-sm" style="width: 64px; height: 64px;">
+                            <i class="bi bi-geo-alt-fill fs-2"></i>
+                        </div>
+                        <h1 class="display-6 fw-bold mb-2 text-dark">HikePlanner</h1>
+                        <p class="text-muted small">
+                            Schätze die Gehzeit basierend auf Distanz und Höhenmetern.
+                        </p>
+                    </div>
 
-                    <form class="vstack gap-3" on:submit|preventDefault={predict}>
-                        <div>
-                            <label class="form-label fw-semibold">Abwärts [m]</label>
-                            <div class="row g-2 align-items-center">
-                                <div class="col-4">
-                                    <input
-                                        type="number"
-                                        class="form-control"
-                                        bind:value={downhill}
-                                        min="0"
-                                        max="10000"
-                                        on:input={schedulePredict}
-                                    />
-                                </div>
+                    <form class="vstack gap-4 flex-grow-1" on:submit|preventDefault={predict}>
+                        <!-- Downhill -->
+                        <div class="bg-white bg-opacity-50 p-3 rounded-3 border border-light">
+                            <label class="form-label fw-semibold text-secondary mb-2 d-flex align-items-center">
+                                <i class="bi bi-arrow-down-right-circle text-primary me-2"></i>Abwärts
+                            </label>
+                            <div class="row g-3 align-items-center">
                                 <div class="col-8">
-                                    <input
-                                        type="range"
-                                        class="form-range"
-                                        bind:value={downhill}
-                                        min="0"
-                                        max="10000"
-                                        step="10"
-                                        on:input={schedulePredict}
-                                    />
+                                    <input type="range" class="form-range" bind:value={downhill} min="0" max="10000" step="10" on:input={schedulePredict} />
+                                </div>
+                                <div class="col-4">
+                                    <div class="input-group input-group-sm shadow-sm">
+                                        <input type="number" class="form-control text-center fw-bold" bind:value={downhill} min="0" max="10000" on:input={schedulePredict} />
+                                        <span class="input-group-text bg-white">m</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
-                        <div>
-                            <label class="form-label fw-semibold">Aufwärts [m]</label>
-                            <div class="row g-2 align-items-center">
-                                <div class="col-4">
-                                    <input
-                                        type="number"
-                                        class="form-control"
-                                        bind:value={uphill}
-                                        min="0"
-                                        max="10000"
-                                        on:input={schedulePredict}
-                                    />
-                                </div>
+                        <!-- Uphill -->
+                        <div class="bg-white bg-opacity-50 p-3 rounded-3 border border-light">
+                            <label class="form-label fw-semibold text-secondary mb-2 d-flex align-items-center">
+                                <i class="bi bi-arrow-up-right-circle text-danger me-2"></i>Aufwärts
+                            </label>
+                            <div class="row g-3 align-items-center">
                                 <div class="col-8">
-                                    <input
-                                        type="range"
-                                        class="form-range"
-                                        bind:value={uphill}
-                                        min="0"
-                                        max="10000"
-                                        step="10"
-                                        on:input={schedulePredict}
-                                    />
+                                    <input type="range" class="form-range" bind:value={uphill} min="0" max="10000" step="10" on:input={schedulePredict} />
+                                </div>
+                                <div class="col-4">
+                                    <div class="input-group input-group-sm shadow-sm">
+                                        <input type="number" class="form-control text-center fw-bold" bind:value={uphill} min="0" max="10000" on:input={schedulePredict} />
+                                        <span class="input-group-text bg-white">m</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
-                        <div>
-                            <label class="form-label fw-semibold">Distanz [m]</label>
-                            <div class="row g-2 align-items-center">
-                                <div class="col-4">
-                                    <input
-                                        type="number"
-                                        class="form-control"
-                                        bind:value={length}
-                                        min="0"
-                                        max="30000"
-                                        on:input={schedulePredict}
-                                    />
-                                </div>
+                        <!-- Distance -->
+                        <div class="bg-white bg-opacity-50 p-3 rounded-3 border border-light">
+                            <label class="form-label fw-semibold text-secondary mb-2 d-flex align-items-center">
+                                <i class="bi bi-arrows-expand text-success me-2"></i>Distanz
+                            </label>
+                            <div class="row g-3 align-items-center">
                                 <div class="col-8">
-                                    <input
-                                        type="range"
-                                        class="form-range"
-                                        bind:value={length}
-                                        min="0"
-                                        max="30000"
-                                        step="10"
-                                        on:input={schedulePredict}
-                                    />
+                                    <input type="range" class="form-range" bind:value={length} min="0" max="30000" step="10" on:input={schedulePredict} />
+                                </div>
+                                <div class="col-4">
+                                    <div class="input-group input-group-sm shadow-sm">
+                                        <input type="number" class="form-control text-center fw-bold" bind:value={length} min="0" max="30000" on:input={schedulePredict} />
+                                        <span class="input-group-text bg-white">m</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="d-grid">
-                            <button class="btn btn-primary btn-lg" type="submit">
-                                Predict
+                        <div class="d-grid mt-auto pt-3">
+                            <button class="btn btn-primary btn-lg rounded-pill shadow-sm fw-bold" type="submit">
+                                <i class="bi bi-calculator me-2"></i>Predict
                             </button>
                         </div>
                     </form>
                 </div>
             </div>
 
-            <div class="col-lg-6">
-                <div class="p-4 p-lg-5 bg-white shadow-sm rounded-4 h-100">
-                    <div class="d-flex align-items-center justify-content-between mb-3">
-                        <h2 class="h5 mb-0 fw-semibold">Dauer</h2>
+            <!-- Right Column: Results -->
+            <div class="col-lg-5 col-md-10">
+                <div class="p-4 p-lg-5 glass-card rounded-4 h-100 d-flex flex-column">
+                    <div class="d-flex align-items-center justify-content-between mb-4 pb-2 border-bottom">
+                        <h2 class="h4 mb-0 fw-bold text-dark"><i class="bi bi-stopwatch text-primary me-2"></i>Dauer</h2>
                     </div>
-                    <div class="table-responsive">
-                        <table class="table table-sm align-middle">
+                    
+                    <div class="table-responsive flex-grow-1">
+                        <table class="table table-hover align-middle mb-0">
                             <tbody>
                                 <tr>
-                                    <th scope="row" class="text-muted">Model (Gradient Boosting Regressor)</th>
-                                    <td class="fw-semibold">{prediction}</td>
+                                    <th scope="row" class="py-3 text-muted fw-normal"><i class="bi bi-robot me-2 text-secondary"></i>Model (GBR)</th>
+                                    <td class="py-3 fw-bold text-primary fs-5">{prediction}</td>
                                 </tr>
                                 <tr>
-                                    <th scope="row" class="text-muted">Model (Linear Regression)</th>
-                                    <td class="fw-semibold">{linearPrediction}</td>
+                                    <th scope="row" class="py-3 text-muted fw-normal"><i class="bi bi-graph-up me-2 text-secondary"></i>Model (Linear)</th>
+                                    <td class="py-3 fw-bold text-dark">{linearPrediction}</td>
                                 </tr>
                                 <tr>
-                                    <th scope="row" class="text-muted">DIN33466</th>
-                                    <td class="fw-semibold">{din33466}</td>
+                                    <th scope="row" class="py-3 text-muted fw-normal"><i class="bi bi-file-earmark-bar-graph me-2 text-secondary"></i>DIN33466</th>
+                                    <td class="py-3 fw-bold text-dark">{din33466}</td>
                                 </tr>
                                 <tr>
-                                    <th scope="row" class="text-muted">SAC</th>
-                                    <td class="fw-semibold">{sac}</td>
+                                    <th scope="row" class="py-3 text-muted fw-normal"><i class="bi bi-geo me-2 text-secondary"></i>SAC</th>
+                                    <td class="py-3 fw-bold text-dark">{sac}</td>
                                 </tr>
                             </tbody>
                         </table>
                     </div>
-                    <div class="mt-4 pt-3 border-top">
-                        <a href="{url}/api/download-model" class="btn btn-outline-secondary w-100" download>
-                            <i class="bi bi-download me-2"></i>Download Model (.pkl)
+
+                    <div class="mt-4 pt-4 border-top vstack gap-3">
+                        <a href="{url}/api/download-prediction?downhill={downhill}&uphill={uphill}&length={length}" class="btn btn-primary rounded-pill shadow-sm" download>
+                            <i class="bi bi-download me-2"></i>Download Results (.csv)
                         </a>
                     </div>
                 </div>
             </div>
+            
+            <!-- History Section -->
+            {#if history.length > 0}
+            <div class="col-lg-10 mt-5">
+                <div class="p-4 glass-card rounded-4">
+                    <h3 class="h5 mb-4 fw-bold text-dark"><i class="bi bi-clock-history text-secondary me-2"></i>History</h3>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover align-middle small">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Time</th>
+                                    <th>Inputs (D/U/L)</th>
+                                    <th>GBR</th>
+                                    <th>Linear</th>
+                                    <th>DIN</th>
+                                    <th>SAC</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {#each history as item}
+                                <tr>
+                                    <td class="text-muted">{item.timestamp}</td>
+                                    <td>{item.inputs.downhill}m / {item.inputs.uphill}m / {item.inputs.length}m</td>
+                                    <td class="fw-bold text-primary">{item.time}</td>
+                                    <td>{item.linear}</td>
+                                    <td>{item.din33466}</td>
+                                    <td>{item.sac}</td>
+                                </tr>
+                                {/each}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {/if}
+            
         </div>
     </main>
 </div>
